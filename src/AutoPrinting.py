@@ -228,27 +228,33 @@ class AutoPrinting:
     def findClassName(self, lineList):
         self.totalClass += 1
         classHeaderLine = lineList[self.index].split(" ")
-        print(classHeaderLine)
         while '' in classHeaderLine:
             classHeaderLine.remove('')
-        print(classHeaderLine)
         className = ""
+
+        # Condition to get class name 
         if "static" not in classHeaderLine and \
             ("public" not in classHeaderLine and \
              "private" not in classHeaderLine and\
              "protected" not in classHeaderLine):
-            className = classHeaderLine[1]
+            if "final" in classHeaderLine or "abstract" in classHeaderLine: 
+                className = classHeaderLine[2] 
+            else:
+                className = classHeaderLine[1]
         elif "public" not in classHeaderLine and \
              "private" not in classHeaderLine and\
              "protected" not in classHeaderLine:
             className = classHeaderLine[2]
         elif "static" not in classHeaderLine:
-            className = classHeaderLine[2]
+            if "final" in classHeaderLine or "abstract" in classHeaderLine: 
+                className = classHeaderLine[3]
+            else:
+                className = classHeaderLine[2]
         elif "static" in classHeaderLine and \
             ("public" in classHeaderLine or \
              "private" in classHeaderLine or\
              "protected" in classHeaderLine):
-            className = classHeaderLine[2]
+            className = classHeaderLine[3]
         
         while self.index < len(lineList) and "{" not in lineList[self.index]:
             self.index += 1
