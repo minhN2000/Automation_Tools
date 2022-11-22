@@ -12,6 +12,12 @@ class AutoPrinting:
         self.classCloseBracket = list()
         self.methodOpenBracket = list()
         self.methodCloseBracket = list()
+        if(fileName.endswith(".java")):
+            self.systemPrint = "System.out."
+            self.javaFile = True
+        else:
+            self.systemPrint = ""
+            self.javaFile = False
         
     def main(self):
 
@@ -61,18 +67,18 @@ class AutoPrinting:
                     if self.haveSuper(lineList) == True:
                         self.index += 1
                         if self.containCloseBracket(lineList):
-                            lineList[self.index-1] += extraSpace + space + "System.out.println(\"xxx " + '.'.join(self.printStatement) + "\");" + "\n"
+                            lineList[self.index-1] += extraSpace + space + self.systemPrint + "println(\"xxx " + '.'.join(self.printStatement) + "\");" + "\n"
                     # Printing line should be after this() call
                     if self.haveThisForConstructor(lineList) == True:
                         self.index += 1
                         if self.containCloseBracket(lineList):
-                            lineList[self.index-1] += extraSpace + space + "System.out.println(\"xxx " + '.'.join(self.printStatement) + "\");" + "\n"
+                            lineList[self.index-1] += extraSpace + space + self.systemPrint + "println(\"xxx " + '.'.join(self.printStatement) + "\");" + "\n"
                     # Special case: if there is a open bracket at the first line of the body
                     if self.containOpenBracket(lineList):
                         self.methodOpenBracket.append("{") 
                     # Print 
                     if "}" not in lineList[self.index]:
-                        lineList[self.index] = extraSpace + space + "System.out.println(\"xxx " + '.'.join(self.printStatement) + "\");" + "\n" + lineList[self.index]
+                        lineList[self.index] = extraSpace + space + self.systemPrint + "println(\"xxx " + '.'.join(self.printStatement) + "\");" + "\n" + lineList[self.index]
                     # Special case: body only has one line
                     else:
                         self.methodOpenBracket.pop()
@@ -110,13 +116,13 @@ class AutoPrinting:
                             if self.haveSuper(lineList) == True:
                                 self.index += 1
                                 if self.containCloseBracket(lineList):
-                                    lineList[self.index-1] += extraSpace + space + "System.out.println(\"xxx " + '.'.join(self.printStatement) + "\");" + "\n"
+                                    lineList[self.index-1] += extraSpace + space + self.systemPrint + "println(\"xxx " + '.'.join(self.printStatement) + "\");" + "\n"
                             if self.haveThisForConstructor(lineList) == True:
                                 self.index += 1
                                 if self.containCloseBracket(lineList):
-                                    lineList[self.index-1] += extraSpace + space + "System.out.println(\"xxx " + '.'.join(self.printStatement) + "\");" + "\n"
+                                    lineList[self.index-1] += extraSpace + space + self.systemPrint + "println(\"xxx " + '.'.join(self.printStatement) + "\");" + "\n"
                             if "}" not in lineList[self.index]:
-                                lineList[self.index] = extraSpace + space + "System.out.println(\"xxx "  + '.'.join(self.printStatement) + "\");" + "\n" + lineList[self.index]
+                                lineList[self.index] = extraSpace + space + self.systemPrint + "println(\"xxx "  + '.'.join(self.printStatement) + "\");" + "\n" + lineList[self.index]
                             else:
                                 self.methodOpenBracket.pop()
                                 self.totalMethod -= 1
@@ -216,7 +222,10 @@ class AutoPrinting:
         self.index += 1
         
     def findMethod(self, lineList):
-        return ("public" in lineList[self.index] or "private" in lineList[self.index] or "protected" in lineList[self.index]) and "(" in lineList[self.index] and "}" not in lineList[self.index] and "new" not in lineList[self.index]
+        if self.javaFile:
+            return ("public" in lineList[self.index] or "private" in lineList[self.index] or "protected" in lineList[self.index]) and "(" in lineList[self.index] and "}" not in lineList[self.index] and "new" not in lineList[self.index]
+        else:
+            return "fun" in lineList[self.index]
 
     def findClass(self, lineList):
         return "class" in lineList[self.index].split(" ")
@@ -226,41 +235,57 @@ class AutoPrinting:
             self.index += 1
             
     def findClassName(self, lineList):
-        self.totalClass += 1
-        classHeaderLine = lineList[self.index].split(" ")
-        while '' in classHeaderLine:
-            classHeaderLine.remove('')
-        className = ""
+        # Find class name if it is java find
+        if self.javaFile:
+            self.totalClass += 1
+            classHeaderLine = lineList[self.index].split(" ")
+            while '' in classHeaderLine:
+                classHeaderLine.remove('')
+            className = ""
 
-        # Condition to get class name 
-        if "static" not in classHeaderLine and \
-            ("public" not in classHeaderLine and \
-             "private" not in classHeaderLine and\
-             "protected" not in classHeaderLine):
-            if "final" in classHeaderLine or "abstract" in classHeaderLine: 
-                className = classHeaderLine[2] 
-            else:
-                className = classHeaderLine[1]
-        elif "public" not in classHeaderLine and \
-             "private" not in classHeaderLine and\
-             "protected" not in classHeaderLine:
-            className = classHeaderLine[2]
-        elif "static" not in classHeaderLine:
-            if "final" in classHeaderLine or "abstract" in classHeaderLine: 
-                className = classHeaderLine[3]
-            else:
+            # Condition to get class name 
+            if "static" not in classHeaderLine and \
+                ("public" not in classHeaderLine and \
+                "private" not in classHeaderLine and\
+                "protected" not in classHeaderLine):
+                if "final" in classHeaderLine or "abstract" in classHeaderLine: 
+                    className = classHeaderLine[2] 
+                else:
+                    className = classHeaderLine[1]
+            elif "public" not in classHeaderLine and \
+                "private" not in classHeaderLine and\
+                "protected" not in classHeaderLine:
                 className = classHeaderLine[2]
-        elif "static" in classHeaderLine and \
-            ("public" in classHeaderLine or \
-             "private" in classHeaderLine or\
-             "protected" in classHeaderLine):
-            className = classHeaderLine[3]
-        
-        while self.index < len(lineList) and "{" not in lineList[self.index]:
+            elif "static" not in classHeaderLine:
+                if "final" in classHeaderLine or "abstract" in classHeaderLine: 
+                    className = classHeaderLine[3]
+                else:
+                    className = classHeaderLine[2]
+            elif "static" in classHeaderLine and \
+                ("public" in classHeaderLine or \
+                "private" in classHeaderLine or\
+                "protected" in classHeaderLine):
+                className = classHeaderLine[3]
+            
+            while self.index < len(lineList) and "{" not in lineList[self.index]:
+                self.index += 1
             self.index += 1
-        self.index += 1
-        self.printStatement.append(className)
-        self.classOpenBracket.append("{")
+            self.printStatement.append(className)
+            self.classOpenBracket.append("{")
+
+        # Find class name if it is kotlin file:
+        else:
+            self.totalClass += 1
+            classHeaderLine = lineList[self.index].split(" ")
+            while '' in classHeaderLine:
+                classHeaderLine.remove('')
+            className = ""
+        
+            while self.index < len(lineList) and "{" not in lineList[self.index]:
+                self.index += 1
+            self.index += 1
+            self.printStatement.append(className)
+            self.classOpenBracket.append("{")
         
     def endFirstClass(self,lineList):
         if len(self.classOpenBracket) == 1 and self.totalClass == 1 and "}" in lineList[self.index] and "{" not in lineList[self.index]:
@@ -275,3 +300,6 @@ class AutoPrinting:
             self.totalClass -= 1
             return True
         return False
+
+# autoPrinting = AutoPrinting("Java Error/anotherTemp.java")
+# autoPrinting.main()
