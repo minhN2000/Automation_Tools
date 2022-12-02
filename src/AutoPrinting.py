@@ -46,7 +46,7 @@ class AutoPrinting:
                 # Line manipulation
                 extraSpace = "    "
                 space = " "
-                space *= lineList[self.index].index('p')
+                space *= self.updateSpace(lineList)
 
                 # Special case: when the method only one liner
                 if("{" in lineList[self.index] and "}" in lineList[self.index]):
@@ -101,7 +101,7 @@ class AutoPrinting:
                     elif self.findMethod(lineList):
                         extraSpace = "    "
                         space = " "
-                        space *= lineList[self.index].index('p') 
+                        space *= self.updateSpace(lineList)
                         
                         if("{" in lineList[self.index] and "}" in lineList[self.index]):
                             self.handleSpecialMethod(lineList)
@@ -178,6 +178,22 @@ class AutoPrinting:
             readFile.write(line)
         readFile.close()
 
+    def updateSpace(self, lineList):
+        if self.javaFile:
+            return lineList[self.index].find('p')
+        else:
+            if "public" in lineList[self.index] \
+                or "private" in lineList[self.index] \
+                or "protected" in lineList[self.index]:
+                idx = lineList[self.index].find('p')
+                if idx != -1:
+                    return idx
+            else:
+                idx = lineList[self.index].find('override')
+                if idx != -1:
+                    return idx
+                else:
+                    return lineList[self.index].find('fun')
 
     def handleSpecialMethod(self, lineList):
         methodHeaderLine = lineList[self.index].split("(")
@@ -206,21 +222,38 @@ class AutoPrinting:
         return False
     
     def haveSuper(self, lineList):
-        return 'super' in lineList[self.index]
+        if self.javaFile:
+            return 'super' in lineList[self.index]
+        else:
+            return False
 
     def haveThisForConstructor(self, lineList):
-        return 'this' in lineList[self.index] and '(' in lineList[self.index]
+        if self.javaFile:
+            return 'this' in lineList[self.index] and '(' in lineList[self.index]
+        else:
+            return False
 
     def findMethodName(self, lineList):
-        self.totalMethod += 1
-        methodHeaderLine = lineList[self.index].split("(")
-        methodName = methodHeaderLine[0].split(" ")[-1] #if "static" not in methodHeaderLine else methodHeaderLine[3]
-        while self.index < len(lineList) and "{" not in lineList[self.index]:
+        if self.javaFile:
+            self.totalMethod += 1
+            methodHeaderLine = lineList[self.index].split("(")
+            methodName = methodHeaderLine[0].split(" ")[-1] #if "static" not in methodHeaderLine else methodHeaderLine[3]
+            while self.index < len(lineList) and "{" not in lineList[self.index]:
+                self.index += 1
+            self.printStatement.append(methodName)
+            self.methodOpenBracket.append("{") 
             self.index += 1
-        self.printStatement.append(methodName)
-        self.methodOpenBracket.append("{") 
-        self.index += 1
-        
+        else:
+            self.totalMethod += 1
+            methodHeaderLine = lineList[self.index].split(" ")
+            indexOfFunWord = methodHeaderLine.index("fun")
+            methodName = methodHeaderLine[indexOfFunWord+1]
+            while self.index < len(lineList) and "{" not in lineList[self.index]:
+                self.index += 1
+            self.printStatement.append(methodName)
+            self.methodOpenBracket.append("{") 
+            self.index += 1
+
     def findMethod(self, lineList):
         if self.javaFile:
             return ("public" in lineList[self.index] or "private" in lineList[self.index] or "protected" in lineList[self.index]) and "(" in lineList[self.index] and "}" not in lineList[self.index] and "new" not in lineList[self.index]
@@ -228,7 +261,15 @@ class AutoPrinting:
             return "fun" in lineList[self.index]
 
     def findClass(self, lineList):
-        return "class" in lineList[self.index].split(" ")
+        if self.javaFile:
+            return "class" in lineList[self.index].split(" ")
+        else:
+            tempList = lineList[self.index].split(" ")
+            return "object" in tempList \
+                   or ("class" in tempList \
+                       and "enum" not in tempList\
+                       and "{" not in tempList) # TODO: CHECK FAULT
+ 
     
     def findFirstClass(self, lineList):
         while self.index < len(lineList) and "class" not in lineList[self.index].split(" "):
@@ -279,8 +320,16 @@ class AutoPrinting:
             classHeaderLine = lineList[self.index].split(" ")
             while '' in classHeaderLine:
                 classHeaderLine.remove('')
+
             className = ""
-        
+            indexOfObjectWord = -1
+            if "object" in lineList[self.index]:
+                indexOfObjectWord = classHeaderLine.index("object")
+                className = classHeaderLine[indexOfObjectWord+1]
+            elif "class" in lineList[self.index]:
+                indexOfObjectWord = classHeaderLine.index("class")
+                className = classHeaderLine[indexOfObjectWord+1]
+
             while self.index < len(lineList) and "{" not in lineList[self.index]:
                 self.index += 1
             self.index += 1
@@ -301,5 +350,5 @@ class AutoPrinting:
             return True
         return False
 
-# autoPrinting = AutoPrinting("Java Error/anotherTemp.java")
-# autoPrinting.main()
+autoPrinting = AutoPrinting("Kotlin Error/template.kt")
+autoPrinting.main()
