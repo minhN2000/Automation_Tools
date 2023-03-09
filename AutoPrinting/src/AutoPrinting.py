@@ -350,5 +350,3 @@ class AutoPrinting:
             return True
         return False
 
-autoPrinting = AutoPrinting("Kotlin Error/template.kt")
-autoPrinting.main()
