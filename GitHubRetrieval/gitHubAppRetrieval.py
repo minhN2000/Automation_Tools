@@ -5,6 +5,8 @@ import pandas as pd
 
 
 parser = argparse.ArgumentParser(description='Script to retrieve repositories data from GitHub')
+parser.add_argument('--restToken', '-r', type=str, default="",
+                    help='The GitHub Rest API token, needed to improve query rate limit')
 parser.add_argument('--query','-q', type=str, help='Query for searching repositories in GitHub')
 parser.add_argument('--start','-s', type=int,
                     help='The lower bound stars to get apps have greater stars than start')
@@ -38,15 +40,13 @@ def getQuery():
     }
     '''
 
-def gitHubAppRetrieval(q, start, end):
-    args = parser.parse_args()
-
+def gitHubAppRetrieval(q, start, end, restToken):
     # Set up the Github API endpoint and headers
     url = 'https://api.github.com/graphql'
-    headers = {'Authorization': 'Bearer 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', 'Content-Type': 'application/json'}
+    headers = {'Authorization': f'Bearer {restToken}', 'Content-Type': 'application/json'}
 
     query = getQuery()
-    variables = {'query': f'{args.query} stars:{args.start}..{args.end}', 'after': None}
+    variables = {'query': f'{q} stars:{start}..{end}', 'after': None}
 
     # Make requests until all pages of results are retrieved
     repositories = []
@@ -91,3 +91,7 @@ def gitHubAppRetrieval(q, start, end):
 
     # save the repositories data into .csv file
     pd.DataFrame(data=lst, columns=['name','description','stargazers_count','html_url']).to_csv(f'output/{args.query}/{args.start}_{args.end}.csv', index=False)
+
+if __name__ == "__main__":
+    args = parser.parse_args()
+    gitHubAppRetrieval(args.query, args.start, args.end, args.restToken)
